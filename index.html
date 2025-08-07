@@ -1442,15 +1442,15 @@
             });
             
             // 防止開發者工具快捷鍵
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'F12' || 
-                    (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J')) ||
-                    (e.ctrlKey && e.key === 'U') ||
-                    (e.ctrlKey && e.key === 'S')) {
-                    e.preventDefault();
-                    return false;
-                }
-            });
+            // document.addEventListener('keydown', function(e) {
+            //     if (e.key === 'F12' || 
+            //         (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J')) ||
+            //         (e.ctrlKey && e.key === 'U') ||
+            //         (e.ctrlKey && e.key === 'S')) {
+            //         e.preventDefault();
+            //         return false;
+            //     }
+            // });
             
             // 防止文字選取和拖曳
             document.addEventListener('selectstart', e => e.preventDefault());
@@ -1469,7 +1469,7 @@
     
     <!-- 版權與安全聲明 -->
     <script>
-        console.log('%c🔐 生成時間: 2025-08-07T19:57:10.019435500+00:00', 'color: #6b7280; font-size: 10px;');
+        console.log('%c🔐 生成時間: 2025-08-07T19:59:39.781024400+00:00', 'color: #6b7280; font-size: 10px;');
         console.log('%c🛡️ 版權所有 © MemoirFlow - 未經授權禁止存取', 'color: #6b7280; font-size: 10px;');
     </script>
 </body>
