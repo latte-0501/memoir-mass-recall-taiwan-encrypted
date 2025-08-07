@@ -884,15 +884,17 @@
                 const BACKEND_URL = 'https://mastermaso.com/memoirflow';
                 const ENCRYPTION_METHOD = 'fallback';
                 
-                let MEMOIR_DATA = null;
+                // 🚨 避免重複宣告
+                if (typeof MEMOIR_DATA === 'undefined') {
+                    let MEMOIR_DATA = null;
+                }
 
                 async function decryptMemoirData() {
                     try {
                         console.log('🔓 使用回退解密模式...');
                         
-                        // 簡單的 Base64 解碼
                         const decodedData = atob(ENCRYPTED_MEMOIR_DATA);
-                        MEMOIR_DATA = JSON.parse(decodedData);
+                        window.MEMOIR_DATA = JSON.parse(decodedData);
                         return true;
                     } catch (error) {
                         console.error('回退解密失敗:', error);
@@ -1043,15 +1045,17 @@
                 const BACKEND_URL = 'https://mastermaso.com/memoirflow';
                 const ENCRYPTION_METHOD = 'fallback';
                 
-                let MEMOIR_DATA = null;
+                // 🚨 避免重複宣告
+                if (typeof MEMOIR_DATA === 'undefined') {
+                    let MEMOIR_DATA = null;
+                }
 
                 async function decryptMemoirData() {
                     try {
                         console.log('🔓 使用回退解密模式...');
                         
-                        // 簡單的 Base64 解碼
                         const decodedData = atob(ENCRYPTED_MEMOIR_DATA);
-                        MEMOIR_DATA = JSON.parse(decodedData);
+                        window.MEMOIR_DATA = JSON.parse(decodedData);
                         return true;
                     } catch (error) {
                         console.error('回退解密失敗:', error);
@@ -1465,7 +1469,7 @@
     
     <!-- 版權與安全聲明 -->
     <script>
-        console.log('%c🔐 生成時間: 2025-08-07T19:37:02.113228300+00:00', 'color: #6b7280; font-size: 10px;');
+        console.log('%c🔐 生成時間: 2025-08-07T19:57:10.019435500+00:00', 'color: #6b7280; font-size: 10px;');
         console.log('%c🛡️ 版權所有 © MemoirFlow - 未經授權禁止存取', 'color: #6b7280; font-size: 10px;');
     </script>
 </body>
