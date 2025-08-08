@@ -992,508 +992,536 @@
         
 
     <!-- 🔐 主要解密系統腳本 -->
-<script>
-    // 🔐 主要解密系統腳本
-    (function() {
-        'use strict';
-        
-        // 全域變數初始化
-        let MEMOIR_DATA = null;
-        let currentEventIndex = 0;
-        let currentMediaIndex = 0;
-        let showSubtitles = true;
-        let showGrid = false;
-        let typewriterEnabled = true;
-        let isTransitioning = false;
-        let typewriterTimer = null;
-        let decryptionAttempts = 0;
-        const MAX_ATTEMPTS = 3;
-        const ENCRYPTION_ENABLED = "true" === "true";
-        const BACKEND_URL = "https://mastermaso.com/memoirflow";
-        
-        // DOM 元素快取
-        const loadingScreen = document.getElementById('loadingScreen');
-        const passwordModal = document.getElementById('passwordModal');
-        const app = document.getElementById('app');
-        const loadingStatus = document.getElementById('loadingStatus');
-        
-        // 更新載入狀態
-        function updateLoadingStatus(message) {
-            console.log('🔄 狀態更新:', message);
-            if (loadingStatus) {
-                loadingStatus.textContent = message;
+    <script>
+        // 🔐 主要解密系統腳本
+        (function() {
+            'use strict';
+            
+            // 全域變數初始化
+            let MEMOIR_DATA = null;
+            let currentEventIndex = 0;
+            let currentMediaIndex = 0;
+            let showSubtitles = true;
+            let showGrid = false;
+            let typewriterEnabled = true;
+            let isTransitioning = false;
+            let typewriterTimer = null;
+            let decryptionAttempts = 0;
+            const MAX_ATTEMPTS = 3;
+            const ENCRYPTION_ENABLED = "true" === "true";
+            const BACKEND_URL = "https://mastermaso.com/memoirflow";
+            
+            // DOM 元素快取
+            const loadingScreen = document.getElementById('loadingScreen');
+            const passwordModal = document.getElementById('passwordModal');
+            const app = document.getElementById('app');
+            const loadingStatus = document.getElementById('loadingStatus');
+            
+            // 更新載入狀態
+            function updateLoadingStatus(message) {
+                console.log('🔄 狀態更新:', message);
+                if (loadingStatus) {
+                    loadingStatus.textContent = message;
+                }
             }
-        }
-        
-        // 🔐 預設解密函數（會被注入的腳本覆蓋）
-        if (typeof window.decryptMemoirData === 'undefined') {
-            window.decryptMemoirData = async function(password = null) {
-                console.log('🔐 使用預設解密函數 - 等待實際解密腳本載入');
+            
+            // 🚨 關鍵修正：檢查是否已有解密函數被注入
+            function initializeDecryptionSystem() {
+                console.log('🔐 初始化解密系統...');
                 
-                // 檢查是否有實際的解密邏輯被注入
+                // 檢查是否有注入的解密函數
                 if (window.MemoirFlowGlobals && window.MemoirFlowGlobals.MEMOIR_DATA) {
+                    console.log('✅ 檢測到注入的解密數據，直接使用');
                     MEMOIR_DATA = window.MemoirFlowGlobals.MEMOIR_DATA;
                     window.MEMOIR_DATA = MEMOIR_DATA;
                     initializeApp();
-                    return true;
-                }
-                
-                // 如果沒有被覆蓋，顯示錯誤
-                showDecryptionError('解密系統未正確初始化，請重新載入頁面');
-                return false;
-            };
-        }
-        
-        // 🔐 顯示密碼輸入模態框 - 關鍵函數！
-        function showPasswordPrompt(errorMessage = '') {
-            console.log('🔑 顯示密碼輸入提示');
-            
-            if (loadingScreen) loadingScreen.classList.add('hidden');
-            if (passwordModal) {
-                passwordModal.classList.remove('hidden');
-                
-                // 設定錯誤訊息
-                const errorDiv = document.getElementById('passwordError');
-                if (errorMessage && errorDiv) {
-                    errorDiv.textContent = errorMessage;
-                    errorDiv.classList.remove('hidden');
-                } else if (errorDiv) {
-                    errorDiv.classList.add('hidden');
-                }
-                
-                // 焦點到密碼輸入框
-                const passwordInput = document.getElementById('memoirPassword');
-                if (passwordInput) {
-                    setTimeout(() => passwordInput.focus(), 100);
-                }
-            }
-        }
-        
-        // 🔐 嘗試密碼解密 - 關鍵函數！
-        async function attemptDecryption() {
-            const passwordInput = document.getElementById('memoirPassword');
-            const unlockBtn = document.getElementById('unlockBtn');
-            const errorDiv = document.getElementById('passwordError');
-            
-            const password = passwordInput ? passwordInput.value : '';
-            
-            if (!password) {
-                if (errorDiv) {
-                    errorDiv.textContent = '請輸入密碼';
-                    errorDiv.classList.remove('hidden');
-                }
-                return;
-            }
-            
-            // 更新按鈕狀態
-            if (unlockBtn) {
-                unlockBtn.textContent = '🔓 解密中...';
-                unlockBtn.disabled = true;
-            }
-            
-            try {
-                updateLoadingStatus('正在驗證密碼...');
-                
-                // 調用實際的解密函數（會被 DECRYPTION_SCRIPT 注入的腳本覆蓋）
-                const success = await decryptMemoirData(password);
-                
-                if (success) {
-                    console.log('✅ 密碼解密成功！');
-                    if (passwordModal) passwordModal.classList.add('hidden');
-                    updateLoadingStatus('解密成功，正在載入內容...');
-                    
-                    setTimeout(() => {
-                        initializeApp();
-                    }, 500);
-                } else {
-                    throw new Error('密碼不正確');
-                }
-            } catch (error) {
-                console.error('❌ 密碼解密失敗:', error);
-                decryptionAttempts++;
-                
-                // 恢復按鈕狀態
-                if (unlockBtn) {
-                    unlockBtn.textContent = '🔓 解鎖';
-                    unlockBtn.disabled = false;
-                }
-                
-                if (decryptionAttempts >= MAX_ATTEMPTS) {
-                    showDecryptionError('解密嘗試次數過多，請重新整理頁面後再試');
                     return;
                 }
                 
-                // 顯示錯誤訊息
-                const errorMessage = `密碼錯誤，請重試 (${decryptionAttempts}/${MAX_ATTEMPTS})`;
-                showPasswordPrompt(errorMessage);
-                
-                // 清空密碼輸入框
-                if (passwordInput) {
-                    passwordInput.value = '';
-                    setTimeout(() => passwordInput.focus(), 100);
-                }
-            }
-        }
-        
-        // 🔐 主要解密函數 - 會被 DECRYPTION_SCRIPT 注入的實際解密腳本覆蓋
-        async function decryptMemoirData(password = null) {
-            console.log('🔐 執行解密 - 基礎版本（應該被實際解密腳本覆蓋）');
-            
-            // 如果到達這裡，說明解密腳本沒有被正確注入
-            
-            if (password) {
-                console.log(`這邊是有加入密碼的解碼過程。`)
-                // 基本的示例解密邏輯（僅用於測試）
-                if (password === 'demo123' || password === 'test123') {
-                    console.log('✅ 使用示例密碼解密成功');
-                    MEMOIR_DATA = {
-                        chineseName: '台灣大罷免運動始末',
-                        englishName: 'demo-memoir',
-                        events: [
-                            {
-                                id: 'demo-1',
-                                date: '2024-01-01',
-                                title: '示例事件',
-                                description: '這是一個示例事件，用於測試加密系統',
-                                media: []
+                // 檢查是否有注入的解密函數並且與模板函數不同
+                if (typeof window.decryptMemoirData === 'function') {
+                    const funcStr = window.decryptMemoirData.toString();
+                    // 檢查是否是注入的函數（不包含"基礎版本"字樣）
+                    if (!funcStr.includes('基礎版本') && !funcStr.includes('應該被實際解密腳本覆蓋')) {
+                        console.log('✅ 檢測到注入的解密函數，開始執行');
+                        window.decryptMemoirData().then(success => {
+                            if (success) {
+                                console.log('✅ 注入的解密函數執行成功');
+                            } else {
+                                console.warn('⚠️ 注入的解密函數執行失敗，使用預設邏輯');
+                                useDefaultDecryption();
                             }
-                        ]
-                    };
-                    return true;
-                }
-            } else {
-                // 嘗試自動解密（後端密鑰模式）
-                console.log('🌐 嘗試後端密鑰解密');
-                updateLoadingStatus('連接後端服務...');
-                console.log(`這邊是沒有加入密碼的解碼過程。`)
-                // 延遲模擬後端請求
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // 示例：假設後端解密成功
-                MEMOIR_DATA = {
-                    chineseName: '台灣大罷免運動始末',
-                    englishName: 'demo-memoir',
-                    events: []
-                };
-                return true;
-            }
-            
-            return false;
-        }
-        
-        // 顯示解密錯誤頁面
-        function showDecryptionError(message) {
-            console.error('❌ 顯示解密錯誤:', message);
-            
-            // 隱藏其他元素
-            if (loadingScreen) loadingScreen.classList.add('hidden');
-            if (passwordModal) passwordModal.classList.add('hidden');
-            if (app) app.classList.add('hidden');
-            
-            const errorPage = document.createElement('div');
-            errorPage.className = 'decryption-error';
-            errorPage.innerHTML = `
-                <div class="error-icon">🚫</div>
-                <h1 class="error-title">解密失敗</h1>
-                <p class="error-description">很抱歉，無法解密此回憶錄的內容。</p>
-                <div class="error-details">
-                    <div><strong>錯誤原因：</strong> ${message}</div>
-                    <div style="margin-top: 15px;"><strong>可能解決方案：</strong></div>
-                    <ul style="margin-top: 8px; padding-left: 20px; text-align: left;">
-                        <li>檢查密碼是否正確</li>
-                        <li>確認網路連接正常</li>
-                        <li>重新整理頁面後再試</li>
-                        <li>聯繫回憶錄作者取得協助</li>
-                    </ul>
-                </div>
-                <button class="retry-btn" onclick="location.reload()">🔄 重新載入</button>
-            `;
-            
-            document.body.appendChild(errorPage);
-        }
-        
-        // 🚀 初始化應用程式 - 解密成功後調用
-        function initializeApp() {
-            console.log('🚀 初始化加密回憶錄應用程式');
-            
-            try {
-                if (!MEMOIR_DATA) {
-                    throw new Error('MEMOIR_DATA 為空');
-                }
-
-                // 顯示主應用程式
-                if (app) app.classList.remove('hidden');
-                
-                const subtitleArea = document.getElementById('subtitleArea');
-                const mainContent = document.getElementById('mainContent');
-                
-                if (subtitleArea) subtitleArea.classList.remove('hidden');
-                if (mainContent) mainContent.classList.remove('hidden');
-                
-                // 初始化 UI 事件
-                initEventListeners();
-                
-                // 載入第一個事件
-                if (MEMOIR_DATA.events && MEMOIR_DATA.events.length > 0) {
-                    loadEvent(0);
-                } else {
-                    console.log('📝 沒有事件數據，顯示空狀態');
-                    showEmptyState();
-                }
-                
-                // 初始化觸控滑動
-                initTouchSwipe();
-                
-                // 隱藏載入畫面
-                setTimeout(() => {
-                    if (loadingScreen) loadingScreen.classList.add('hidden');
-                }, 1000);
-
-                console.log('✅ 加密回憶錄應用程式初始化完成');
-            } catch (error) {
-                console.error('❌ 應用程式初始化失敗:', error);
-                showDecryptionError(`初始化失敗: ${error.message}`);
-            }
-        }
-        
-        // 初始化事件監聽器
-        function initEventListeners() {
-            // 導航按鈕
-            const prevEventBtn = document.getElementById('prevEventBtn');
-            const nextEventBtn = document.getElementById('nextEventBtn');
-            
-            if (prevEventBtn) prevEventBtn.addEventListener('click', () => goToEvent(currentEventIndex - 1));
-            if (nextEventBtn) nextEventBtn.addEventListener('click', () => goToEvent(currentEventIndex + 1));
-            
-            // 字幕切換
-            const subtitleToggle = document.getElementById('subtitleToggle');
-            if (subtitleToggle) subtitleToggle.addEventListener('click', toggleSubtitles);
-            
-            // 密碼模態框按鈕
-            const unlockBtn = document.getElementById('unlockBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const passwordInput = document.getElementById('memoirPassword');
-            
-            if (unlockBtn) unlockBtn.addEventListener('click', attemptDecryption);
-            if (cancelBtn) cancelBtn.addEventListener('click', () => window.history.back());
-            
-            // Enter 鍵支援
-            if (passwordInput) {
-                passwordInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        attemptDecryption();
+                        }).catch(error => {
+                            console.error('❌ 注入的解密函數執行錯誤:', error);
+                            useDefaultDecryption();
+                        });
+                        return;
                     }
-                });
+                }
                 
-                // 輸入時移除錯誤狀態
-                passwordInput.addEventListener('input', function() {
+                // 如果沒有注入的函數，使用預設邏輯
+                console.log('🔄 使用預設解密邏輯');
+                useDefaultDecryption();
+            }
+            
+            // 🔐 預設解密函數（僅在沒有注入腳本時使用）
+            function useDefaultDecryption() {
+                console.log('🔐 執行預設解密邏輯');
+                
+                // 延遲處理，給注入腳本更多時間
+                setTimeout(async () => {
+                    try {
+                        // 再次檢查是否有數據被注入
+                        if (window.MemoirFlowGlobals && window.MemoirFlowGlobals.MEMOIR_DATA) {
+                            console.log('✅ 延遲檢查發現注入數據');
+                            MEMOIR_DATA = window.MemoirFlowGlobals.MEMOIR_DATA;
+                            window.MEMOIR_DATA = MEMOIR_DATA;
+                            initializeApp();
+                            return;
+                        }
+                        
+                        console.log('⚠️ 未檢測到有效的解密腳本或數據');
+                        showDecryptionError('解密系統未正確載入，請重新整理頁面');
+                        
+                    } catch (error) {
+                        console.error('❌ 預設解密邏輯失敗:', error);
+                        showDecryptionError('解密初始化失敗: ' + error.message);
+                    }
+                }, 2000); // 給注入腳本2秒的執行時間
+            }
+            
+            // 🔐 顯示密碼輸入模態框 - 關鍵函數！
+            function showPasswordPrompt(errorMessage = '') {
+                console.log('🔑 顯示密碼輸入提示');
+                
+                if (loadingScreen) loadingScreen.classList.add('hidden');
+                if (passwordModal) {
+                    passwordModal.classList.remove('hidden');
+                    
+                    // 設定錯誤訊息
                     const errorDiv = document.getElementById('passwordError');
-                    if (errorDiv) {
+                    if (errorMessage && errorDiv) {
+                        errorDiv.textContent = errorMessage;
+                        errorDiv.classList.remove('hidden');
+                    } else if (errorDiv) {
                         errorDiv.classList.add('hidden');
                     }
-                });
-            }
-            
-            // 鍵盤控制
-            document.addEventListener('keydown', handleKeyPress);
-        }
-        
-        // 簡化版的核心功能
-        function loadEvent(eventIndex) {
-            if (!MEMOIR_DATA || !MEMOIR_DATA.events || MEMOIR_DATA.events.length === 0) {
-                return;
-            }
-            
-            const sortedEvents = MEMOIR_DATA.events.sort((a, b) => 
-                new Date(a.date).getTime() - new Date(b.date).getTime()
-            );
-            
-            if (eventIndex < 0 || eventIndex >= sortedEvents.length) return;
-            
-            const event = sortedEvents[eventIndex];
-            currentEventIndex = eventIndex;
-            currentMediaIndex = 0;
-            
-            // 更新 UI
-            updateEventInfo(event);
-            updateNavigationButtons(sortedEvents.length);
-            
-            console.log(`📅 載入事件: ${event.title} (${eventIndex + 1}/${sortedEvents.length})`);
-        }
-        
-        function updateEventInfo(event) {
-            const elements = {
-                currentEventNum: document.getElementById('currentEventNum'),
-                totalEvents: document.getElementById('totalEvents'),
-                mediaCount: document.getElementById('mediaCount'),
-                eventDate: document.getElementById('eventDate'),
-                eventTitle: document.getElementById('eventTitle'),
-                eventDescription: document.getElementById('eventDescription')
-            };
-            
-            if (elements.currentEventNum) elements.currentEventNum.textContent = currentEventIndex + 1;
-            if (elements.totalEvents) elements.totalEvents.textContent = MEMOIR_DATA.events.length;
-            if (elements.mediaCount) elements.mediaCount.textContent = event.media ? event.media.length : 0;
-            
-            if (elements.eventDate) {
-                try {
-                    const eventDate = new Date(event.date).toLocaleDateString('zh-TW', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                    elements.eventDate.textContent = eventDate;
-                } catch (e) {
-                    elements.eventDate.textContent = event.date;
-                }
-            }
-            
-            if (elements.eventTitle) elements.eventTitle.textContent = event.title;
-            if (elements.eventDescription) elements.eventDescription.textContent = event.description;
-        }
-        
-        function updateNavigationButtons(totalEvents) {
-            const prevBtn = document.getElementById('prevEventBtn');
-            const nextBtn = document.getElementById('nextEventBtn');
-            
-            if (prevBtn) {
-                if (currentEventIndex === 0) {
-                    prevBtn.classList.add('disabled');
-                } else {
-                    prevBtn.classList.remove('disabled');
-                }
-            }
-            
-            if (nextBtn) {
-                if (currentEventIndex === totalEvents - 1) {
-                    nextBtn.classList.add('disabled');
-                } else {
-                    nextBtn.classList.remove('disabled');
-                }
-            }
-        }
-        
-        function goToEvent(eventIndex) {
-            if (!MEMOIR_DATA || !MEMOIR_DATA.events) return;
-            const totalEvents = MEMOIR_DATA.events.length;
-            if (eventIndex >= 0 && eventIndex < totalEvents && eventIndex !== currentEventIndex) {
-                loadEvent(eventIndex);
-            }
-        }
-        
-        function toggleSubtitles() {
-            showSubtitles = !showSubtitles;
-            const toggle = document.getElementById('subtitleToggle');
-            const eventDescription = document.getElementById('eventDescription');
-            
-            if (showSubtitles) {
-                if (toggle) toggle.classList.add('active');
-                if (eventDescription) eventDescription.style.display = 'block';
-            } else {
-                if (toggle) toggle.classList.remove('active');
-                if (eventDescription) eventDescription.style.display = 'none';
-            }
-        }
-        
-        function handleKeyPress(e) {
-            switch (e.key) {
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    goToEvent(currentEventIndex - 1);
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    goToEvent(currentEventIndex + 1);
-                    break;
-                case 'Escape':
-                    e.preventDefault();
-                    break;
-            }
-        }
-        
-        function showEmptyState() {
-            const mediaDisplay = document.getElementById('mediaDisplay');
-            if (mediaDisplay) {
-                mediaDisplay.innerHTML = `
-                    <div style="text-align: center; color: #9ca3af; padding: 40px;">
-                        <div style="font-size: 48px; margin-bottom: 20px;">📖</div>
-                        <div style="font-size: 18px; margin-bottom: 10px;">回憶錄已解密</div>
-                        <div style="font-size: 14px;">但暫時沒有時間節點內容</div>
-                    </div>
-                `;
-            }
-        }
-        
-        // 簡化版的觸控支援
-        function initTouchSwipe() {
-            let touchStartX = 0;
-            let touchEndX = 0;
-            const minSwipeDistance = 50;
-            
-            const swipeArea = document.getElementById('subtitleArea');
-            if (!swipeArea) return;
-            
-            swipeArea.addEventListener('touchstart', (e) => {
-                touchStartX = e.touches[0].clientX;
-            }, { passive: true });
-            
-            swipeArea.addEventListener('touchend', (e) => {
-                touchEndX = e.changedTouches[0].clientX;
-                const deltaX = touchEndX - touchStartX;
-                
-                if (Math.abs(deltaX) > minSwipeDistance) {
-                    if (deltaX > 0) {
-                        goToEvent(currentEventIndex - 1);
-                    } else {
-                        goToEvent(currentEventIndex + 1);
+                    
+                    // 焦點到密碼輸入框
+                    const passwordInput = document.getElementById('memoirPassword');
+                    if (passwordInput) {
+                        setTimeout(() => passwordInput.focus(), 100);
                     }
                 }
-            }, { passive: true });
-        }
-        
-        // 🔐 主要初始化流程
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔐 MemoirFlow 加密回憶錄載入中...');
-            console.log('⚙️ 加密狀態:', ENCRYPTION_ENABLED);
-            console.log('🌐 後端 URL:', BACKEND_URL);
+            }
             
-            updateLoadingStatus('正在準備解密系統...');
-            
-            // 初始化 Lucide 圖標
-            if (typeof lucide !== 'undefined') {
+            // 🔐 嘗試密碼解密 - 關鍵函數！
+            async function attemptDecryption() {
+                const passwordInput = document.getElementById('memoirPassword');
+                const unlockBtn = document.getElementById('unlockBtn');
+                const errorDiv = document.getElementById('passwordError');
+                
+                const password = passwordInput ? passwordInput.value : '';
+                
+                if (!password) {
+                    if (errorDiv) {
+                        errorDiv.textContent = '請輸入密碼';
+                        errorDiv.classList.remove('hidden');
+                    }
+                    return;
+                }
+                
+                // 更新按鈕狀態
+                if (unlockBtn) {
+                    unlockBtn.textContent = '🔓 解密中...';
+                    unlockBtn.disabled = true;
+                }
+                
                 try {
-                    lucide.createIcons();
-                } catch (e) {
-                    console.warn('⚠️ Lucide 圖標初始化失敗:', e);
+                    updateLoadingStatus('正在驗證密碼...');
+                    
+                    // 調用解密函數
+                    let success = false;
+                    
+                    // 如果有注入的解密函數，優先使用
+                    if (typeof window.decryptMemoirData === 'function') {
+                        const funcStr = window.decryptMemoirData.toString();
+                        if (!funcStr.includes('基礎版本')) {
+                            success = await window.decryptMemoirData(password);
+                        }
+                    }
+                    
+                    if (success) {
+                        console.log('✅ 密碼解密成功！');
+                        if (passwordModal) passwordModal.classList.add('hidden');
+                        updateLoadingStatus('解密成功，正在載入內容...');
+                        
+                        setTimeout(() => {
+                            initializeApp();
+                        }, 500);
+                    } else {
+                        throw new Error('密碼不正確');
+                    }
+                } catch (error) {
+                    console.error('❌ 密碼解密失敗:', error);
+                    decryptionAttempts++;
+                    
+                    // 恢復按鈕狀態
+                    if (unlockBtn) {
+                        unlockBtn.textContent = '🔓 解鎖';
+                        unlockBtn.disabled = false;
+                    }
+                    
+                    if (decryptionAttempts >= MAX_ATTEMPTS) {
+                        showDecryptionError('解密嘗試次數過多，請重新整理頁面後再試');
+                        return;
+                    }
+                    
+                    // 顯示錯誤訊息
+                    const errorMessage = `密碼錯誤，請重試 (${decryptionAttempts}/${MAX_ATTEMPTS})`;
+                    showPasswordPrompt(errorMessage);
+                    
+                    // 清空密碼輸入框
+                    if (passwordInput) {
+                        passwordInput.value = '';
+                        setTimeout(() => passwordInput.focus(), 100);
+                    }
                 }
             }
             
-            // 延遲啟動解密流程
-            setTimeout(() => {
-                updateLoadingStatus('正在檢查存取權限...');
+            // 顯示解密錯誤頁面
+            function showDecryptionError(message) {
+                console.error('❌ 顯示解密錯誤:', message);
                 
-                // 開始解密流程
+                // 隱藏其他元素
+                if (loadingScreen) loadingScreen.classList.add('hidden');
+                if (passwordModal) passwordModal.classList.add('hidden');
+                if (app) app.classList.add('hidden');
+                
+                const errorPage = document.createElement('div');
+                errorPage.className = 'decryption-error';
+                errorPage.innerHTML = `
+                    <div class="error-icon">🚫</div>
+                    <h1 class="error-title">解密失敗</h1>
+                    <p class="error-description">很抱歉，無法解密此回憶錄的內容。</p>
+                    <div class="error-details">
+                        <div><strong>錯誤原因：</strong> ${message}</div>
+                        <div style="margin-top: 15px;"><strong>可能解決方案：</strong></div>
+                        <ul style="margin-top: 8px; padding-left: 20px; text-align: left;">
+                            <li>檢查密碼是否正確</li>
+                            <li>確認網路連接正常</li>
+                            <li>重新整理頁面後再試</li>
+                            <li>聯繫回憶錄作者取得協助</li>
+                        </ul>
+                    </div>
+                    <button class="retry-btn" onclick="location.reload()">🔄 重新載入</button>
+                `;
+                
+                document.body.appendChild(errorPage);
+            }
+            
+            // 🚀 初始化應用程式 - 解密成功後調用
+            function initializeApp() {
+                console.log('🚀 初始化加密回憶錄應用程式');
+                
+                try {
+                    // 從多個可能的來源獲取數據
+                    if (!MEMOIR_DATA) {
+                        if (window.MemoirFlowGlobals && window.MemoirFlowGlobals.MEMOIR_DATA) {
+                            MEMOIR_DATA = window.MemoirFlowGlobals.MEMOIR_DATA;
+                        } else if (window.MEMOIR_DATA) {
+                            MEMOIR_DATA = window.MEMOIR_DATA;
+                        }
+                    }
+                    
+                    if (!MEMOIR_DATA) {
+                        throw new Error('MEMOIR_DATA 為空');
+                    }
+
+                    console.log('📊 載入的回憶錄數據:', {
+                        name: MEMOIR_DATA.chineseName,
+                        events: MEMOIR_DATA.events ? MEMOIR_DATA.events.length : 0
+                    });
+
+                    // 顯示主應用程式
+                    if (app) app.classList.remove('hidden');
+                    
+                    const subtitleArea = document.getElementById('subtitleArea');
+                    const mainContent = document.getElementById('mainContent');
+                    
+                    if (subtitleArea) subtitleArea.classList.remove('hidden');
+                    if (mainContent) mainContent.classList.remove('hidden');
+                    
+                    // 初始化 UI 事件
+                    initEventListeners();
+                    
+                    // 載入第一個事件
+                    if (MEMOIR_DATA.events && MEMOIR_DATA.events.length > 0) {
+                        loadEvent(0);
+                    } else {
+                        console.log('📝 沒有事件數據，顯示空狀態');
+                        showEmptyState();
+                    }
+                    
+                    // 初始化觸控滑動
+                    initTouchSwipe();
+                    
+                    // 隱藏載入畫面
+                    setTimeout(() => {
+                        if (loadingScreen) loadingScreen.classList.add('hidden');
+                    }, 1000);
+
+                    console.log('✅ 加密回憶錄應用程式初始化完成');
+                } catch (error) {
+                    console.error('❌ 應用程式初始化失敗:', error);
+                    showDecryptionError(`初始化失敗: ${error.message}`);
+                }
+            }
+            
+            // 初始化事件監聽器
+            function initEventListeners() {
+                // 導航按鈕
+                const prevEventBtn = document.getElementById('prevEventBtn');
+                const nextEventBtn = document.getElementById('nextEventBtn');
+                
+                if (prevEventBtn) prevEventBtn.addEventListener('click', () => goToEvent(currentEventIndex - 1));
+                if (nextEventBtn) nextEventBtn.addEventListener('click', () => goToEvent(currentEventIndex + 1));
+                
+                // 字幕切換
+                const subtitleToggle = document.getElementById('subtitleToggle');
+                if (subtitleToggle) subtitleToggle.addEventListener('click', toggleSubtitles);
+                
+                // 密碼模態框按鈕
+                const unlockBtn = document.getElementById('unlockBtn');
+                const cancelBtn = document.getElementById('cancelBtn');
+                const passwordInput = document.getElementById('memoirPassword');
+                
+                if (unlockBtn) unlockBtn.addEventListener('click', attemptDecryption);
+                if (cancelBtn) cancelBtn.addEventListener('click', () => window.history.back());
+                
+                // Enter 鍵支援
+                if (passwordInput) {
+                    passwordInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            attemptDecryption();
+                        }
+                    });
+                    
+                    // 輸入時移除錯誤狀態
+                    passwordInput.addEventListener('input', function() {
+                        const errorDiv = document.getElementById('passwordError');
+                        if (errorDiv) {
+                            errorDiv.classList.add('hidden');
+                        }
+                    });
+                }
+                
+                // 鍵盤控制
+                document.addEventListener('keydown', handleKeyPress);
+            }
+            
+            // 簡化版的核心功能
+            function loadEvent(eventIndex) {
+                if (!MEMOIR_DATA || !MEMOIR_DATA.events || MEMOIR_DATA.events.length === 0) {
+                    return;
+                }
+                
+                const sortedEvents = MEMOIR_DATA.events.sort((a, b) => 
+                    new Date(a.date).getTime() - new Date(b.date).getTime()
+                );
+                
+                if (eventIndex < 0 || eventIndex >= sortedEvents.length) return;
+                
+                const event = sortedEvents[eventIndex];
+                currentEventIndex = eventIndex;
+                currentMediaIndex = 0;
+                
+                // 更新 UI
+                updateEventInfo(event);
+                updateNavigationButtons(sortedEvents.length);
+                
+                console.log(`📅 載入事件: ${event.title} (${eventIndex + 1}/${sortedEvents.length})`);
+            }
+            
+            function updateEventInfo(event) {
+                const elements = {
+                    currentEventNum: document.getElementById('currentEventNum'),
+                    totalEvents: document.getElementById('totalEvents'),
+                    mediaCount: document.getElementById('mediaCount'),
+                    eventDate: document.getElementById('eventDate'),
+                    eventTitle: document.getElementById('eventTitle'),
+                    eventDescription: document.getElementById('eventDescription')
+                };
+                
+                if (elements.currentEventNum) elements.currentEventNum.textContent = currentEventIndex + 1;
+                if (elements.totalEvents) elements.totalEvents.textContent = MEMOIR_DATA.events.length;
+                if (elements.mediaCount) elements.mediaCount.textContent = event.media ? event.media.length : 0;
+                
+                if (elements.eventDate) {
+                    try {
+                        const eventDate = new Date(event.date).toLocaleDateString('zh-TW', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                        elements.eventDate.textContent = eventDate;
+                    } catch (e) {
+                        elements.eventDate.textContent = event.date;
+                    }
+                }
+                
+                if (elements.eventTitle) elements.eventTitle.textContent = event.title;
+                if (elements.eventDescription) elements.eventDescription.textContent = event.description;
+            }
+            
+            function updateNavigationButtons(totalEvents) {
+                const prevBtn = document.getElementById('prevEventBtn');
+                const nextBtn = document.getElementById('nextEventBtn');
+                
+                if (prevBtn) {
+                    if (currentEventIndex === 0) {
+                        prevBtn.classList.add('disabled');
+                    } else {
+                        prevBtn.classList.remove('disabled');
+                    }
+                }
+                
+                if (nextBtn) {
+                    if (currentEventIndex === totalEvents - 1) {
+                        nextBtn.classList.add('disabled');
+                    } else {
+                        nextBtn.classList.remove('disabled');
+                    }
+                }
+            }
+            
+            function goToEvent(eventIndex) {
+                if (!MEMOIR_DATA || !MEMOIR_DATA.events) return;
+                const totalEvents = MEMOIR_DATA.events.length;
+                if (eventIndex >= 0 && eventIndex < totalEvents && eventIndex !== currentEventIndex) {
+                    loadEvent(eventIndex);
+                }
+            }
+            
+            function toggleSubtitles() {
+                showSubtitles = !showSubtitles;
+                const toggle = document.getElementById('subtitleToggle');
+                const eventDescription = document.getElementById('eventDescription');
+                
+                if (showSubtitles) {
+                    if (toggle) toggle.classList.add('active');
+                    if (eventDescription) eventDescription.style.display = 'block';
+                } else {
+                    if (toggle) toggle.classList.remove('active');
+                    if (eventDescription) eventDescription.style.display = 'none';
+                }
+            }
+            
+            function handleKeyPress(e) {
+                switch (e.key) {
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        goToEvent(currentEventIndex - 1);
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        goToEvent(currentEventIndex + 1);
+                        break;
+                    case 'Escape':
+                        e.preventDefault();
+                        break;
+                }
+            }
+            
+            function showEmptyState() {
+                const mediaDisplay = document.getElementById('mediaDisplay');
+                if (mediaDisplay) {
+                    mediaDisplay.innerHTML = `
+                        <div style="text-align: center; color: #9ca3af; padding: 40px;">
+                            <div style="font-size: 48px; margin-bottom: 20px;">📖</div>
+                            <div style="font-size: 18px; margin-bottom: 10px;">回憶錄已解密</div>
+                            <div style="font-size: 14px;">但暫時沒有時間節點內容</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // 簡化版的觸控支援
+            function initTouchSwipe() {
+                let touchStartX = 0;
+                let touchEndX = 0;
+                const minSwipeDistance = 50;
+                
+                const swipeArea = document.getElementById('subtitleArea');
+                if (!swipeArea) return;
+                
+                swipeArea.addEventListener('touchstart', (e) => {
+                    touchStartX = e.touches[0].clientX;
+                }, { passive: true });
+                
+                swipeArea.addEventListener('touchend', (e) => {
+                    touchEndX = e.changedTouches[0].clientX;
+                    const deltaX = touchEndX - touchStartX;
+                    
+                    if (Math.abs(deltaX) > minSwipeDistance) {
+                        if (deltaX > 0) {
+                            goToEvent(currentEventIndex - 1);
+                        } else {
+                            goToEvent(currentEventIndex + 1);
+                        }
+                    }
+                }, { passive: true });
+            }
+            
+            // 將關鍵函數暴露到全域作用域
+            window.showPasswordPrompt = showPasswordPrompt;
+            window.attemptDecryption = attemptDecryption;
+            window.initializeApp = initializeApp;
+            
+            // 🔐 主要初始化流程
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('🔐 MemoirFlow 加密回憶錄載入中...');
+                console.log('⚙️ 加密狀態:', ENCRYPTION_ENABLED);
+                console.log('🌐 後端 URL:', BACKEND_URL);
+                
+                updateLoadingStatus('正在準備解密系統...');
+                
+                // 初始化 Lucide 圖標
+                if (typeof lucide !== 'undefined') {
+                    try {
+                        lucide.createIcons();
+                    } catch (e) {
+                        console.warn('⚠️ Lucide 圖標初始化失敗:', e);
+                    }
+                }
+                
+                // 延遲啟動解密流程，給注入腳本時間執行
                 setTimeout(() => {
-                    console.log('🔐 開始解密流程');
-                    decryptMemoirData();
-                }, 800);
-            }, 1500);
-        });
-        
-        // 錯誤處理
-        window.addEventListener('error', function(e) {
-            console.error('❌ 頁面錯誤:', e.error);
-            if (!app || app.classList.contains('hidden')) {
-                showDecryptionError(`系統錯誤: ${e.error?.message || '未知錯誤'}`);
-            }
-        });
-        
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('❌ Promise 錯誤:', e.reason);
-            if (!app || app.classList.contains('hidden')) {
-                showDecryptionError(`載入錯誤: ${e.reason?.message || '網路連接問題'}`);
-            }
-        });
+                    updateLoadingStatus('正在檢查存取權限...');
+                    
+                    // 開始解密流程
+                    setTimeout(() => {
+                        console.log('🔐 開始解密流程');
+                        initializeDecryptionSystem(); // 使用新的初始化函數
+                    }, 800);
+                }, 1500);
+            });
+            
+            // 錯誤處理
+            window.addEventListener('error', function(e) {
+                console.error('❌ 頁面錯誤:', e.error);
+                if (!app || app.classList.contains('hidden')) {
+                    showDecryptionError(`系統錯誤: ${e.error?.message || '未知錯誤'}`);
+                }
+            });
+            
+            window.addEventListener('unhandledrejection', function(e) {
+                console.error('❌ Promise 錯誤:', e.reason);
+                if (!app || app.classList.contains('hidden')) {
+                    showDecryptionError(`載入錯誤: ${e.reason?.message || '網路連接問題'}`);
+                }
+            });
+        })();
     </script>
 
     <!-- 🔐 安全性增強腳本 -->
@@ -1536,7 +1564,7 @@
     
     <!-- 版權與安全聲明 -->
     <script>
-        console.log('%c🔐 生成時間: 2025-08-08T03:55:33.934690900+00:00', 'color: #6b7280; font-size: 10px;');
+        console.log('%c🔐 生成時間: 2025-08-08T04:01:28.252471300+00:00', 'color: #6b7280; font-size: 10px;');
         console.log('%c🛡️ 版權所有 © MemoirFlow - 未經授權禁止存取', 'color: #6b7280; font-size: 10px;');
     </script>
 </body>
