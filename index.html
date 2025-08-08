@@ -878,37 +878,34 @@
     <!-- 🔐 加密數據注入點 - 關鍵！這是解密腳本的注入位置 -->
     
         <script>
-        // 🔐 MemoirFlow 统一前端解密系统 - 避免重复变量声明
+        // 🔐 MemoirFlow 統一前端解密系統 - 強制覆蓋版本
         (function() {
             'use strict';
             
-            // 🚨 检查是否已经初始化，避免重复声明
-            if (typeof window.MemoirFlowDecryptionSystem !== 'undefined') {
-                console.warn('⚠️ 解密系统已经初始化，跳过重复初始化');
+            console.log('🔐 解密腳本開始載入...');
+            
+            // 🚨 檢查並避免重複初始化
+            if (window.MemoirFlowDecryptionSystem) {
+                console.warn('⚠️ 解密系統已初始化，跳過重複載入');
                 return;
             }
             
-            // 🚨 标记系统已初始化
+            // 🚨 強制覆蓋標記
             window.MemoirFlowDecryptionSystem = true;
             
-            // 🚨 全局变量统一管理 - 只声明一次
-            if (typeof window.MemoirFlowGlobals === 'undefined') {
-                window.MemoirFlowGlobals = {
-                    MEMOIR_DATA: null,
-                    decryptionAttempts: 0,
-                    MAX_ATTEMPTS: 3,
-                    isInitialized: false,
-                    decryptionMode: null,
-                    debugInfo: {}
-                };
-                
-                console.log('✅ MemoirFlow 全局变量初始化完成');
-            }
+            // 🚨 全域變數管理
+            window.MemoirFlowGlobals = window.MemoirFlowGlobals || {
+                MEMOIR_DATA: null,
+                decryptionAttempts: 0,
+                MAX_ATTEMPTS: 3,
+                isInitialized: false,
+                decryptionMode: null,
+                debugInfo: {}
+            };
             
-            // 便捷的全局变量引用
             const globals = window.MemoirFlowGlobals;
-
-            // 🚨 解密模式特定逻辑
+            
+            // 🚨 模式特定的解密邏輯
             
             // 🔄 回退模式解密逻辑
             globals.decryptionMode = 'fallback';
@@ -934,161 +931,72 @@
                 }
             };
         
-
-            // 🚨 通用辅助函数 - 只定义一次
-            if (typeof window.MemoirFlowUtils === 'undefined') {
+            
+            // 🚨 工具函數（如果未定義）
+            if (!window.MemoirFlowUtils) {
                 window.MemoirFlowUtils = {
-                    
-                    // Base64 转 ArrayBuffer
-                    base64ToArrayBuffer: function(base64) {
-                        const binaryString = atob(base64);
-                        const bytes = new Uint8Array(binaryString.length);
-                        for (let i = 0; i < binaryString.length; i++) {
-                            bytes[i] = binaryString.charCodeAt(i);
-                        }
-                        return bytes.buffer;
-                    },
-                    
-                    // 从 URL 提取回忆录 ID
-                    extractMemoirIdFromUrl: function() {
-                        return window.location.pathname.split('/').pop() || 'unknown';
-                    },
-                    
-                    // 检查访问控制
-                    checkAccessControl: function(accessControl) {
-                        const currentDomain = window.location.hostname;
+                    initializeApp: function() {
+                        console.log('🚀 MemoirFlowUtils 初始化應用程式');
                         
-                        if (accessControl.allowed_domains && accessControl.allowed_domains.length > 0) {
-                            const isAllowed = accessControl.allowed_domains.some(domain => 
-                                currentDomain.includes(domain) || domain === 'localhost'
-                            );
-                            if (!isAllowed) {
-                                console.warn('当前域名不在允许列表中:', currentDomain);
-                                return false;
-                            }
+                        const loadingScreen = document.getElementById('loadingScreen');
+                        const passwordModal = document.getElementById('passwordModal');
+                        const app = document.getElementById('app');
+                        
+                        if (loadingScreen) loadingScreen.classList.add('hidden');
+                        if (passwordModal) passwordModal.classList.add('hidden');
+                        if (app) app.classList.remove('hidden');
+                        
+                        // 嘗試調用模板中的初始化函數
+                        if (typeof initializeApp === 'function') {
+                            initializeApp();
+                        } else if (typeof window.initializeApp === 'function') {
+                            window.initializeApp();
                         }
                         
-                        return true;
+                        globals.isInitialized = true;
+                        window.MEMOIR_DATA = globals.MEMOIR_DATA;
                     },
                     
-                    // 显示解密错误
                     showDecryptionError: function(message) {
-                        // 移除现有的错误页面
-                        const existingError = document.querySelector('.decryption-error');
-                        if (existingError) {
-                            existingError.remove();
-                        }
-                        
                         const errorDiv = document.createElement('div');
                         errorDiv.className = 'decryption-error';
                         errorDiv.innerHTML = `
                             <div class="error-icon">❌</div>
-                            <h1 class="error-title">解密失败</h1>
+                            <h1 class="error-title">解密失敗</h1>
                             <p class="error-description">${message}</p>
-                            <div class="error-details">
-                                <div><strong>可能的解决方案：</strong></div>
-                                <ul style="margin-top: 8px; padding-left: 20px; text-align: left;">
-                                    <li>检查网络连接是否正常</li>
-                                    <li>重新刷新页面后再试</li>
-                                    <li>清除浏览器缓存</li>
-                                    <li>联系技术支持</li>
-                                </ul>
-                            </div>
-                            <button class="retry-btn" onclick="location.reload()">🔄 重新加载</button>
+                            <button class="retry-btn" onclick="location.reload()">🔄 重新載入</button>
                         `;
-                        
                         document.body.appendChild(errorDiv);
-                    },
-                    
-                    // 初始化应用程序
-                    initializeApp: function() {
-                        console.log('🚀 初始化应用程序');
-                        
-                        // 隐藏加载画面
-                        const loadingScreen = document.getElementById('loadingScreen');
-                        if (loadingScreen) {
-                            loadingScreen.classList.add('hidden');
-                        }
-                        
-                        // 隐藏密码模态框
-                        const passwordModal = document.getElementById('passwordModal');
-                        if (passwordModal) {
-                            passwordModal.classList.add('hidden');
-                        }
-                        
-                        // 显示主应用程序
-                        const app = document.getElementById('app');
-                        if (app) {
-                            app.classList.remove('hidden');
-                        }
-                        
-                        // 尝试多种初始化函数名称
-                        const initFunctions = ['initializeApp', 'initApp', 'init'];
-                        let initialized = false;
-                        
-                        for (const funcName of initFunctions) {
-                            if (typeof window[funcName] === 'function' && funcName !== 'initializeApp') {
-                                console.log(`🚀 使用 ${funcName} 初始化应用程序`);
-                                try {
-                                    window[funcName]();
-                                    initialized = true;
-                                    break;
-                                } catch (e) {
-                                    console.warn(`⚠️ ${funcName} 初始化失败:`, e);
-                                }
-                            }
-                        }
-                        
-                        if (!initialized) {
-                            console.log('✅ 使用默认初始化完成');
-                        }
-                        
-                        globals.isInitialized = true;
-                        window.MEMOIR_DATA = globals.MEMOIR_DATA; // 向后兼容
                     }
                 };
-                
-                console.log('✅ MemoirFlow 工具函数初始化完成');
             }
-
-            // 将关键函数绑定到全局作用域
-            window.decryptMemoirData = window.decryptMemoirData || function() {
-                console.warn('⚠️ 解密函数未正确初始化');
-                return Promise.resolve(false);
-            };
             
-            window.showPasswordPrompt = window.MemoirFlowUtils.showDecryptionError;
-            window.showDecryptionError = window.MemoirFlowUtils.showDecryptionError;
-
-            // 页面加载时自动尝试解密
-            function startDecryptionProcess() {
-                console.log('🔐 开始解密流程');
-                
+            // 🚨 確保在下一個事件循環中執行初始化
+            setTimeout(function() {
+                console.log('🔐 開始自動解密流程');
                 if (typeof window.decryptMemoirData === 'function') {
-                    setTimeout(() => {
-                        window.decryptMemoirData().catch(error => {
-                            console.error('❌ 自动解密失败:', error);
-                            // 不自动显示错误，让具体的解密逻辑处理
-                        });
-                    }, 500);
+                    window.decryptMemoirData().catch(function(error) {
+                        console.error('❌ 自動解密失敗:', error);
+                        // 讓具體的解密邏輯處理錯誤顯示
+                    });
                 } else {
-                    console.error('❌ 解密函数未定义');
-                    window.MemoirFlowUtils.showDecryptionError('解密系统初始化失败');
+                    console.error('❌ decryptMemoirData 函數未定義');
+                    window.MemoirFlowUtils.showDecryptionError('解密函數載入失敗');
                 }
-            }
-
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', startDecryptionProcess);
-            } else {
-                startDecryptionProcess();
-            }
-
+            }, 100);
+            
+            console.log('✅ 解密腳本載入完成');
+            
         })();
         </script>
         
 
     <!-- 🔐 主要解密系統腳本 -->
-    <script>
+<script>
+    // 🔐 主要解密系統腳本
+    (function() {
+        'use strict';
+        
         // 全域變數初始化
         let MEMOIR_DATA = null;
         let currentEventIndex = 0;
@@ -1115,6 +1023,25 @@
             if (loadingStatus) {
                 loadingStatus.textContent = message;
             }
+        }
+        
+        // 🔐 預設解密函數（會被注入的腳本覆蓋）
+        if (typeof window.decryptMemoirData === 'undefined') {
+            window.decryptMemoirData = async function(password = null) {
+                console.log('🔐 使用預設解密函數 - 等待實際解密腳本載入');
+                
+                // 檢查是否有實際的解密邏輯被注入
+                if (window.MemoirFlowGlobals && window.MemoirFlowGlobals.MEMOIR_DATA) {
+                    MEMOIR_DATA = window.MemoirFlowGlobals.MEMOIR_DATA;
+                    window.MEMOIR_DATA = MEMOIR_DATA;
+                    initializeApp();
+                    return true;
+                }
+                
+                // 如果沒有被覆蓋，顯示錯誤
+                showDecryptionError('解密系統未正確初始化，請重新載入頁面');
+                return false;
+            };
         }
         
         // 🔐 顯示密碼輸入模態框 - 關鍵函數！
@@ -1609,7 +1536,7 @@
     
     <!-- 版權與安全聲明 -->
     <script>
-        console.log('%c🔐 生成時間: 2025-08-07T21:45:09.139710800+00:00', 'color: #6b7280; font-size: 10px;');
+        console.log('%c🔐 生成時間: 2025-08-08T03:55:33.934690900+00:00', 'color: #6b7280; font-size: 10px;');
         console.log('%c🛡️ 版權所有 © MemoirFlow - 未經授權禁止存取', 'color: #6b7280; font-size: 10px;');
     </script>
 </body>
